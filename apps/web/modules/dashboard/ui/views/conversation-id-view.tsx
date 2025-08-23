@@ -28,6 +28,7 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DicebearAvatar } from "@workspace/ui/components/dicebear-avatar";
+import { ConversationStatusButton } from "../components/conversation-status-button";
 
 const formSchema = z.object({
   message: z.string().min(1, "Message is required"),
@@ -55,17 +56,45 @@ export const ConversationIdView = ({
     },
   });
 
-  const createMessage = useMutation(api.private.messages.create)
+  const createMessage = useMutation(api.private.messages.create);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       await createMessage({
         conversationId,
-        prompt: values.message
-      })
-      form.reset()
-    } catch(error) {
-      console.error(error)
+        prompt: values.message,
+      });
+      form.reset();
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const updateConversationStatus = useMutation(
+    api.private.conversations.updateStatus
+  );
+
+  const handleToggleStatus = async () => {
+    if (!conversation) {
+      return;
+    }
+
+    let newStatus: "unresolved" | "resolved" | "escalated";
+    if (conversation.status === "unresolved") {
+      newStatus = "escalated";
+    } else if (conversation.status === "escalated") {
+      newStatus = "resolved";
+    } else {
+      newStatus = "unresolved";
+    }
+
+    try {
+      await updateConversationStatus({
+        conversationId,
+        status: newStatus,
+      });
+    } catch (error) {
+      console.error(error);
     }
   };
 
@@ -75,6 +104,12 @@ export const ConversationIdView = ({
         <Button size="sm" variant="ghost">
           <MoreHorizontalIcon />
         </Button>
+        {!!conversation && (
+          <ConversationStatusButton 
+            onClick={handleToggleStatus}
+            status={conversation?.status}
+          />
+        )}
       </header>
       <AIConversation className="max-h-[calc(100vh-180px)]">
         <AIConversationContent>
@@ -135,10 +170,15 @@ export const ConversationIdView = ({
                   Enhance
                 </AIInputButton>
               </AIInputTools>
-              <AIInputSubmit disabled={
-                conversation?.status === "resolved" || 
-                  !form.formState.isValid || form.formState.isSubmitting
-              } status="ready" type="submit" />
+              <AIInputSubmit
+                disabled={
+                  conversation?.status === "resolved" ||
+                  !form.formState.isValid ||
+                  form.formState.isSubmitting
+                }
+                status="ready"
+                type="submit"
+              />
             </AIInputToolbar>
           </AIInput>
         </Form>
