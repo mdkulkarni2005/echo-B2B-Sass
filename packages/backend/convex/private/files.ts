@@ -2,8 +2,10 @@ import { ConvexError, v } from "convex/values";
 import {
   guessMimeTypeFromContents,
   guessMimeTypeFromExtension,
+  RAG,
 } from "@convex-dev/rag";
 import { action } from "../_generated/server";
+import { extractTextContent } from "../lib/extractTextContent";
 
 function guessMimeType(fileName: string, bytes: ArrayBuffer): string {
   return (
@@ -15,7 +17,7 @@ function guessMimeType(fileName: string, bytes: ArrayBuffer): string {
 
 export const addFile = action({
   args: {
-    fileName: v.string(),
+    filename: v.string(),
     mimeType: v.string(),
     bytes: v.bytes(),
     category: v.optional(v.string()),
@@ -39,17 +41,19 @@ export const addFile = action({
       });
     }
 
-    const { bytes, fileName, category } = args;
-    const mimeType = args.mimeType || guessMimeType(fileName, bytes);
+    const { bytes, filename, category } = args;
+    const mimeType = args.mimeType || guessMimeType(filename, bytes);
     const blob = new Blob([bytes], { type: mimeType })
 
     const storageId = await ctx.storage.store(blob)
 
     const text = await extractTextContent(ctx, {
         storageId,
-        fileName,
+        filename,
         bytes,
         mimeType
     })
+
+    const {} = await RAG.add()
   },
 });
