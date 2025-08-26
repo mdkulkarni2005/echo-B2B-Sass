@@ -19,85 +19,158 @@ import {
   DropzoneEmptyState,
 } from "@workspace/ui/components/dropzone";
 import { api } from "@workspace/backend/_generated/api";
+import { error } from "console";
 
 interface UploadDialogProps {
-    open: boolean
-    onOpenChange: (open: boolean) => void
-    onFileUpload?: () => void
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onFileUpload?: () => void;
 }
 
 export const UploadDialog = ({
-    open,
-    onOpenChange,
-    onFileUpload
+  open,
+  onOpenChange,
+  onFileUploaded,
 }: UploadDialogProps) => {
-    const addFile = useAction(api.private.files.addFile)
+  const addFile = useAction(api.private.files.addFile);
 
-    const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
-    const [isUploading, setIsUploading] = useState(false)
-    const [uploadForm, setUploadForm] = useState({
-        category: "",
-        filename: "",
-    })
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadForm, setUploadForm] = useState({
+    category: "",
+    filename: "",
+  });
 
-    const handleFileDrop = (acceptedFiles: File[]) => {
-        const file = acceptedFiles[0]
+  const handleFileDrop = (acceptedFiles: File[]) => {
+    const file = acceptedFiles[0];
 
-        if(file) {
-            setUploadedFiles([file])
+    if (file) {
+      setUploadedFiles([file]);
 
-            if(!uploadForm.filename) {
-                setUploadForm((prev) => ({ ...prev, filename: file.name }))
-            }
-        }
+      if (!uploadForm.filename) {
+        setUploadForm((prev) => ({ ...prev, filename: file.name }));
+      }
     }
+  };
 
-    return (
-        <Dialog onOpenChange={onOpenChange} open={open}>
-            <DialogContent className="sm:max-w-lg">
-                <DialogHeader>
-                    <DialogTitle>
-                        Upload Document
-                    </DialogTitle>
-                    <DialogDescription>
-                        Upload documents to your knowledge base for AI-powered search and retrieval
-                    </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-2">
-                    <Label htmlFor="category">
-                        Category
-                    </Label>
-                    <Input className="w-full" id="category" onChange={(e) => setUploadForm((prev) =>  ({
-                        ...prev,
-                        category: e.target.value
-                    }))}
-                     placeholder="e.g., Documentation, Support, Product"
-                     type="text"
-                     value={uploadForm.category}
-                    />
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="filename">
-                        Filename{" "}
-                        <span className="text-muted-foreground text-xs">(optional)</span>
-                    </Label>
-                    <Input className="w-full" id="filename" onChange={(e) => setUploadForm((prev) =>  ({
-                        ...prev,
-                        filename: e.target.value
-                    }))}
-                     placeholder="Override default filename"
-                     type="text"
-                     value={uploadForm.filename}
-                    />
-                </div>
+  const handleUpload = async () => {
+    try {
+      const blob = uploadedFiles[0];
 
-                <Dropzone 
-                    accept={{
-                        "application/pdf": [".pdf"],
-                        
-                    }}
-                />
-            </DialogContent>
-        </Dialog>
-    )
-}
+      if (!blob) {
+        return;
+      }
+
+      const filename = uploadForm.filename || blob.name;
+
+      await addFile({
+        bytes: await blob.arrayBuffer(),
+        filename,
+        mimeType: blob.type || "text/plain",
+        category: uploadForm.category,
+      });
+
+      onFileUploaded?.();
+      handleCancel();
+    } catch (error) {
+      console.errror(error);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleCancel = () => {
+    onOpenChange(false);
+    setUploadedFiles([]);
+    setUploadForm({
+      category: "",
+      filename: "",
+    });
+  };
+
+  return (
+    <Dialog onOpenChange={onOpenChange} open={open}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Upload Document</DialogTitle>
+          <DialogDescription>
+            Upload documents to your knowledge base for AI-powered search and
+            retrieval
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="category">Category</Label>
+            <Input
+              className="w-full"
+              id="category"
+              onChange={(e) =>
+                setUploadForm((prev) => ({
+                  ...prev,
+                  category: e.target.value,
+                }))
+              }
+              placeholder="e.g., Documentation, Support, Product"
+              type="text"
+              value={uploadForm.category}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="filename">
+              Filename{" "}
+              <span className="text-muted-foreground text-xs">(optional)</span>
+            </Label>
+            <Input
+              className="w-full"
+              id="filename"
+              onChange={(e) =>
+                setUploadForm((prev) => ({
+                  ...prev,
+                  filename: e.target.value,
+                }))
+              }
+              placeholder="Override default filename"
+              type="text"
+              value={uploadForm.filename}
+            />
+          </div>
+
+          <Dropzone
+            accept={{
+              "application/pdf": [".pdf"],
+              "text/csv": [".csv"],
+              "text/plain": [".txt"],
+            }}
+            disabled={isUploading}
+            maxFiles={1}
+            onDrop={handleFileDrop}
+            src={uploadedFiles}
+          >
+            <DropzoneEmptyState />
+            <DropzoneContent />
+          </Dropzone>
+        </div>
+
+        <DialogFooter>
+          <Button
+            variant="outline"
+            disabled={isUploading}
+            onClick={handleCancel}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleUpload}
+            disabled={
+              uploadedFiles.length === 0 || isUploading || !uploadForm.category
+            }
+            onClick={handleUpload}
+          >
+            {isUploading ? "Uploading..." : "Upload"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
