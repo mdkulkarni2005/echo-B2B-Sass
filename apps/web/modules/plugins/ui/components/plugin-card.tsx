@@ -11,7 +11,7 @@ export interface Feature {
 interface PluginCardProps {
   isDisabled?: boolean;
   serviceName: string;
-  serviceImage: "string";
+  serviceImage: string;
   features: Feature[];
   onSubmit: () => void;
 }
@@ -48,6 +48,28 @@ export const PluginCard = ({
             width={40}
             src="/logo.svg"
           />
+        </div>
+      </div>
+
+      <div className="mb-6 text-center">
+        <p className="text-lg">connect your {serviceName} account</p>
+      </div>
+
+      <div className="mb-6">
+        <div className="space-y-4">
+          {features.map((feature) => {
+            return (
+              <div className="flex items-center gap-3" key={feature.label}>
+                <div className="flex size-8 items-center justify-center rounded-lg border bg-muted">
+                  <feature.icon className="size-4 text-muted-foreground" />
+                </div>
+                <div>
+                  <div className="font-medium text-sm">{feature.label}</div>
+                  <div className="text-muted-foreground text-xs">{feature.description}</div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
