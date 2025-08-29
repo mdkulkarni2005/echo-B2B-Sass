@@ -30,7 +30,7 @@ interface UploadDialogProps {
 export const UploadDialog = ({
   open,
   onOpenChange,
-  onFileUploaded,
+  onFileUpload,
 }: UploadDialogProps) => {
   const addFile = useAction(api.private.files.addFile);
 
@@ -70,10 +70,10 @@ export const UploadDialog = ({
         category: uploadForm.category,
       });
 
-      onFileUploaded?.();
+      onFileUpload?.();
       handleCancel();
     } catch (error) {
-      console.errror(error);
+      console.error(error);
     } finally {
       setIsUploading(false);
     }
@@ -165,7 +165,6 @@ export const UploadDialog = ({
             disabled={
               uploadedFiles.length === 0 || isUploading || !uploadForm.category
             }
-            onClick={handleUpload}
           >
             {isUploading ? "Uploading..." : "Upload"}
           </Button>

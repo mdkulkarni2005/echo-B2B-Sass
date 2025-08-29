@@ -24,7 +24,7 @@ import {
   AIMessage,
   AIMessageContent,
 } from "@workspace/ui/components/ai/message";
-import { AIResponse, AIResponseb } from "@workspace/ui/components/ai/response";
+import { AIResponse } from "@workspace/ui/components/ai/response";
 import { Form, FormField } from "@workspace/ui/components/form";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -34,6 +34,7 @@ import { ConversationStatusButton } from "../components/conversation-status-butt
 import { useState } from "react";
 import { cn } from "@workspace/ui/lib/utils";
 import { Skeleton } from "@workspace/ui/components/skeleton";
+import { Id } from "@workspace/backend/_generated/dataModel";
 
 const formSchema = z.object({
   message: z.string().min(1, "Message is required"),
@@ -158,22 +159,27 @@ export const ConversationIdView = ({
             onLoadMore={handleLoadMore}
             ref={topElementRef}
           />
-          {toUIMessages(messages.results ?? [])?.map((message) => (
-            <AIMessage
-              from={message.role === "user" ? "assistant" : "user"}
-              key={message.id}
-            >
-              <AIMessageContent>
-                <AIResponse>{message.content}</AIResponse>
-              </AIMessageContent>
-              {message.role === "user" && (
-                <DicebearAvatar
-                  seed={conversation?.contactSessionId ?? "user"}
-                  size={32}
-                />
-              )}
-            </AIMessage>
-          ))}
+          {toUIMessages(messages.results ?? [])?.map((message) => {
+            // Extract text content from the message object
+            const messageText = (message as any).text || (message as any).content || "";
+            
+            return (
+              <AIMessage
+                from={message.role === "user" ? "assistant" : "user"}
+                key={message.id}
+              >
+                <AIMessageContent>
+                  <AIResponse>{messageText}</AIResponse>
+                </AIMessageContent>
+                {message.role === "user" && (
+                  <DicebearAvatar
+                    seed={conversation?.contactSessionId ?? "user"}
+                    size={32}
+                  />
+                )}
+              </AIMessage>
+            );
+          })}
         </AIConversationContent>
         <AIConversationScrollButton />
       </AIConversation>

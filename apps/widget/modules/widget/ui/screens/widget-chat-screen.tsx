@@ -126,20 +126,23 @@ export const WidgetChatScreen = () => {
           <p>Chat</p>
         </div>
         <Button>
-          <MenuIcon size="icon" variant="transition" />
+          <MenuIcon size="icon" className="transition" />
         </Button>
       </WidgetHeader>
       <AIConversation>
         <AIConversationContent>
           <InfiniteScrollTrigger canLoadMore={canLoadMore} isLoadingMore={isLoadingMore} onLoadMore={handleLoadMore} ref={topElementRef}  />
           {toUIMessages(messages.results ?? [])?.map((message) => {
+            // Extract text content from the message object
+            const messageText = (message as any).text || (message as any).content || "";
+            
             return (
               <AIMessage
                 from={message.role === "user" ? "user" : "assistant"}
                 key={message.id}
               >
                 <AIMessageContent>
-                  <AIResponse>{message.content}</AIResponse>
+                  <AIResponse>{messageText}</AIResponse>
                 </AIMessageContent>
                 {message.role === "assistant" && (
                   <DicebearAvatar imageUrl="/logo.svg" seed="assistant" size={32} /> 

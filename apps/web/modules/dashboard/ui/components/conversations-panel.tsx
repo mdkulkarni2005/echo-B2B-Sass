@@ -108,7 +108,7 @@ export const ConversationsPanel = () => {
           <div className="flex w-full flex-1 flex-col text-sm">
             {conversations.results.map((conversation) => {
               const isLastMessageFromOperator =
-                conversation.lastMessage?.role !== "user";
+                conversation.lastMessage?.userId !== undefined;
 
               const country = getCountryFromTimezone(
                 conversation.contactSession.metadata?.timezone
