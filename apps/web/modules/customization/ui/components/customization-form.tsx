@@ -6,6 +6,7 @@ import { Button } from "@workspace/ui/components/button";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
 } from "@workspace/ui/components/card";
@@ -24,33 +25,25 @@ import { Textarea } from "@workspace/ui/components/textarea";
 import { Doc } from "@workspace/backend/_generated/dataModel";
 import { useMutation } from "convex/react";
 import { api } from "@workspace/backend/_generated/api";
+import { VapiFormFields } from "./vapi-form-fields";
+import { FormSchema } from "../../types";
+import { widgetSettingsSchema } from "../../schemas";
 
-// Combined schema for all widget settigns
-export const widgetSettingsSchema = z.object({
-  greetMessage: z.string().min(1, "Greeting message is required"),
-  defaultSuggestions: z.object({
-    suggestion1: z.string().optional(),
-    suggestion2: z.string().optional(),
-    suggestion3: z.string().optional(),
-  }),
-  vapiSettings: z.object({
-    assistantId: z.string().optional(),
-    phoneNumber: z.string().optional(),
-  }),
-});
 
 type WidgetSettings = Doc<"widgetSetting">;
-type FromSchema = z.infer<typeof widgetSettingsSchema>;
 
 interface CustomizationFormProps {
   initialData?: WidgetSettings | null;
   hasVapiPlugin: boolean;
 }
 
-export const CustomizationForm = ({ initialData }: CustomizationFormProps) => {
+export const CustomizationForm = ({
+  initialData,
+  hasVapiPlugin,
+}: CustomizationFormProps) => {
   const upsertWidgetSettings = useMutation(api.private.widgetSettings.upsert);
 
-  const form = useForm<useForm>({
+  const form = useForm<FormSchema>({
     resolver: zodResolver(widgetSettingsSchema),
     defaultValues: {
       greetMessage:
@@ -63,9 +56,153 @@ export const CustomizationForm = ({ initialData }: CustomizationFormProps) => {
       vapiSettings: {
         assistantId: initialData?.vapiSettings.assistantId || "",
         phoneNumber: initialData?.vapiSettings.phoneNumber || "",
-      }
+      },
     },
   });
 
-  return <div>Form!</div>;
+  const onSubmit = async (values: FormSchema) => {
+    try {
+      const vapiSettings: WidgetSettings["vapiSettings"] = {
+        assistantId:
+          values.vapiSettings.assistantId === "none"
+            ? ""
+            : values.vapiSettings.assistantId,
+        phoneNumber:
+          values.vapiSettings.phoneNumber === "none"
+            ? ""
+            : values.vapiSettings.phoneNumber,
+      };
+
+      await upsertWidgetSettings({
+        greetMessage: values.greetMessage,
+        defaultSuggestions: values.defaultSuggestions,
+        vapiSettings,
+      });
+
+      toast.success("Widget setting saved");
+    } catch (error) {
+      console.error(error);
+      toast.error("Something went wrong");
+    }
+  };
+
+  return (
+    <Form {...form}>
+      <form className="space-y-6" onSubmit={form.handleSubmit(onSubmit)}>
+        <Card>
+          <CardHeader>
+            <CardTitle>General Chat settings</CardTitle>
+            <CardDescription>
+              Configure basic chat widge behavior and messages
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <FormField
+              control={form.control}
+              name="greetMessage"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>greeting Message</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      {...field}
+                      placeholder="Welcome message shown when chat open"
+                      rows={3}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    The first message customers see when they open the chat
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <Separator />
+
+            <div className="space-y-4">
+              <div>
+                <h3 className="mb-4 text-sm">Default Suggestions</h3>
+                <p className="mb-4 text-muted-foreground text-sm">
+                  Quick replay suggestions shown to customers to help guide the
+                  conversation
+                </p>
+
+                <div className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="defaultSuggestions.suggestion1"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Suggestion 1</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            placeholder="e.g., How do i get started?"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="defaultSuggestions.suggestion2"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Suggestion 2</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            placeholder="e.g., What are your pricing plans?"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="defaultSuggestions.suggestion3"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Suggestion 3</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            placeholder="e.g., I need help with my account?"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {hasVapiPlugin && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Voice Assistant Settings</CardTitle>
+              <CardDescription>
+                Configure voice calling features powered by Vapi
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <VapiFormFields form={form} />
+            </CardContent>
+          </Card>
+        )}
+
+        <div className="flex justify-end">
+          <Button disabled={form.formState.isSubmitting} type="submit">
+            Save Setting
+          </Button>
+        </div>
+      </form>
+    </Form>
+  );
 };
