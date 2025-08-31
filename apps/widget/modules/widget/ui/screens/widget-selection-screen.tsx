@@ -6,13 +6,16 @@ import {
   ChevronRightIcon,
   MessageSquareIcon,
   MessageSquareTextIcon,
+  MicIcon,
 } from "lucide-react";
 import {
   contactSessionIdAtomFamily,
   conversationIdAtom,
   errorMessageAtom,
+  hasVapiSecretsAtom,
   organizationIdAtom,
   screenAtom,
+  widgetSettingsAtom,
 } from "@/modules/widget/atoms/widget-atoms";
 import { WidgetHeader } from "../components/widget-header";
 import { Button } from "@workspace/ui/components/button";
@@ -24,7 +27,10 @@ import { WidgetFooter } from "../components/widget-footer";
 export const WidgetSelectionScreen = () => {
   const setScreen = useSetAtom(screenAtom);
   const setErrorMessage = useSetAtom(errorMessageAtom);
-  const setConversationId = useSetAtom(conversationIdAtom)
+  const setConversationId = useSetAtom(conversationIdAtom);
+
+  const widgetSettings = useAtomValue(widgetSettingsAtom);
+  const hasVapiSecrets = useAtomValue(hasVapiSecretsAtom);
   const organizationId = useAtomValue(organizationIdAtom);
   const contactSessionId = useAtomValue(
     contactSessionIdAtomFamily(organizationId || "")
@@ -49,12 +55,12 @@ export const WidgetSelectionScreen = () => {
         contactSessionId,
         organizationId,
       });
-      setConversationId(conversationId)
+      setConversationId(conversationId);
       setScreen("chat");
     } catch {
       setScreen("auth");
     } finally {
-      setIsPending(false)
+      setIsPending(false);
     }
   };
 
@@ -79,6 +85,20 @@ export const WidgetSelectionScreen = () => {
             <ChevronRightIcon />
           </div>
         </Button>
+        {hasVapiSecrets && widgetSettings?.vapiSettings?.assistantId && (
+          <Button
+            className="h-16 w-full justify-between"
+            variant="outline"
+            onClick={handleNewCoversation}
+            disabled={isPending}
+          >
+            <div className="flex items-center gap-x-2">
+              <MicIcon className="size-4" />
+              <span>Start voice call</span>
+              <ChevronRightIcon />
+            </div>
+          </Button>
+        )}
       </div>
       <WidgetFooter />
     </>
