@@ -20,42 +20,42 @@ export const getMany = query({
       });
     }
 
-    const conversations = await ctx.db 
-        .query("conversations")
-        .withIndex("by_contact_session_id", (q) => 
-            q.eq("contactSessionId", args.contactSessionId),
-            )
-            .order("desc")
-            .paginate(args.paginationOpts)
-        
-        const conversationsWithLastMessage = await Promise.all(
-            conversations.page.map(async (conversation) => {
-                let lastMessage: MessageDoc | null = null
+    const conversations = await ctx.db
+      .query("conversations")
+      .withIndex("by_contact_session_id", (q) =>
+        q.eq("contactSessionId", args.contactSessionId)
+      )
+      .order("desc")
+      .paginate(args.paginationOpts);
 
-                const messages = await supportAgent.listMessages(ctx, {
-                    threadId: conversation.threadId,
-                    paginationOpts: { numItems: 1, cursor: null }
-                })
+    const conversationsWithLastMessage = await Promise.all(
+      conversations.page.map(async (conversation) => {
+        let lastMessage: MessageDoc | null = null;
 
-                if (messages.page.length > 0) {
-                    lastMessage = messages.page[0] ?? null
-                }
+        const messages = await supportAgent.listMessages(ctx, {
+          threadId: conversation.threadId,
+          paginationOpts: { numItems: 1, cursor: null },
+        });
 
-                return {
-                    _id: conversation._id,
-                    _creationTime: conversation._creationTime,
-                    status: conversation.status,
-                    organizationId: conversation.organizationId,
-                    threadId: conversation.threadId,
-                    lastMessage,
-                }
-            })
-        )
+        if (messages.page.length > 0) {
+          lastMessage = messages.page[0] ?? null;
+        }
 
         return {
-            ... conversations,
-            page: conversationsWithLastMessage
-        }
+          _id: conversation._id,
+          _creationTime: conversation._creationTime,
+          status: conversation.status,
+          organizationId: conversation.organizationId,
+          threadId: conversation.threadId,
+          lastMessage,
+        };
+      })
+    );
+
+    return {
+      ...conversations,
+      page: conversationsWithLastMessage,
+    };
   },
 });
 
@@ -113,6 +113,13 @@ export const create = mutation({
       });
     }
 
+    const widgetSettings = await ctx.db
+      .query("widgetSetting")
+      .withIndex("by_organization_id", (q) =>
+        q.eq("organizationId", args.organizationId)
+      )
+      .unique()
+
     const { threadId } = await supportAgent.createThread(ctx, {
       userId: args.organizationId,
     });
@@ -121,8 +128,7 @@ export const create = mutation({
       threadId,
       message: {
         role: "assistant",
-        // TODO: Later modify to widget setting's initial message
-        content: "Hello, how can i help you today?",
+        content: widgetSettings?.greetMessage|| "Hello, how can i help you today?",
       },
     });
 
